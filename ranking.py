@@ -1,24 +1,42 @@
 from selenium import webdriver
+import pandas as pd
 
 browser = webdriver.Chrome()
 browser.get('https://scraping-for-beginner.herokuapp.com/ranking/')
 
-# １つの観光地情報を取得
-elem_rankingbox = browser.find_element_by_class_name('u_areaListRankingBox')
-elem_title = elem_rankingbox.find_element_by_class_name('u_title')
-elem_eval = browser.find_element_by_class_name('u_rankBox')
-elem_eval = elem_eval.find_element_by_class_name('evaluateNumber')
-elem_rank = browser.find_element_by_class_name('u_categoryTipsItem')
-elem_fun = elem_rank.find_elements_by_class_name('is_rank')[0]
-elem_cloud = elem_rank.find_elements_by_class_name('is_rank')[1]
-elem_scape = elem_rank.find_elements_by_class_name('is_rank')[2]
-elem_access = elem_rank.find_elements_by_class_name('is_rank')[3]
+# 全ての観光地の情報を取得
+elems_rankingbox = browser.find_elements_by_class_name('u_areaListRankingBox')
 
-txt_title = elem_title.text
-txt_eval = elem_eval.text
-txt_fun = elem_fun.text
+titles = []
+evals = []
+categories = []
 
-print(txt_title.split('\n')[1])
-print(txt_eval)
+for elem_rankingbox in elems_rankingbox:
+  # 観光地名
+  elem_title = elem_rankingbox.find_element_by_class_name('u_title')
+  txt_title = elem_title.text.split('\n')[1]
+  titles.append(txt_title)
+  # 総合評価
+  elem_eval = elem_rankingbox.find_element_by_class_name('u_rankBox')
+  elem_eval = elem_eval.find_element_by_class_name('evaluateNumber')
+  float_eval = float(elem_eval.text)
+  evals.append(float_eval)
+  # 各評価
+  elem = elem_rankingbox.find_element_by_class_name('u_categoryTipsItem')
+  elems_rank = elem.find_elements_by_class_name('is_rank')
+  _ranks = []
+  for elem_rank in elems_rank:
+    rank = elem_rank.find_element_by_class_name('evaluateNumber').text
+    _ranks.append(rank)
+  categories.append(_ranks)
 
+df = pd.DataFrame()
+df['観光地名'] = titles
+df['総合評価'] = evals
+df_categories = pd.DataFrame(categories)
+df_categories.columns = ['楽しさ','人混みの多さ','景色','アクセス']
+df = pd.concat([df,df_categories], axis=1)
+df.to_csv('観光地情報.csv', index=False)
+
+browser.close
 browser.quit
